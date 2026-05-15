@@ -1,0 +1,42 @@
+name: Auto-Generate Key Every 72 Hours
+
+on:
+  schedule:
+    # Таймер (Cron): 0 минут, 0 часов, каждые 3 дня. (UTC время)
+    - cron: '0 0 */3 * *'
+  # Это добавит кнопку на GitHub, чтобы ты мог запустить генерацию вручную для теста
+  workflow_dispatch: 
+
+jobs:
+  generate-and-save-key:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Даем права на запись файла
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Generate new random key
+        run: |
+          # Генерируем 8 случайных букв и цифр, переводим в верхний регистр
+          RANDOM_STRING=$(openssl rand -hex 4 | tr 'a-z' 'A-Z')
+          
+          # Формируем финальный ключ
+          NEW_KEY="ICH-$RANDOM_STRING-FREE"
+          
+          # Перезаписываем файл key.txt (если его нет - он создастся)
+          echo "$NEW_KEY" > key.txt
+          
+          echo "Сгенерирован новый ключ: $NEW_KEY"
+
+      - name: Commit and Push changes
+        run: |
+          # Представляемся как бот GitHub
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Добавляем файл и сохраняем
+          git add key.txt
+          git commit -m "Автоматическое обновление ключа [skip ci]" || echo "Нет изменений для сохранения"
+          git push
